@@ -1,10 +1,16 @@
+import os
 import json
 import torch
 import requests
 import pandas as pd
-from .bpe import BPETokenizerSimple
 from pandas import json_normalize
 from torch.utils.data import Dataset
+from tokenizers import Tokenizer
+from tokenizers.models import BPE
+from tokenizers.trainers import BpeTrainer
+from transformers import AutoTokenizer
+from tokenizers.pre_tokenizers import Whitespace
+from transformers import PreTrainedTokenizerFast
 
 
 def label_dates(df):
@@ -82,9 +88,19 @@ def create_corpus():
     return text
 
 
-tokenizer = BPETokenizerSimple()
-tokenizer.load_vocab_and_merges(vocab_path="vocab.json", bpe_merges_path="ae_bpe_merges.txt")
+tokenizer = Tokenizer(BPE())
 
+tokenizer.pre_tokenizer = Whitespace()
+
+trainer = BpeTrainer(special_tokens=["<|endoftext|>"])
+
+tokenizer.train(files=["data/text.txt"], trainer=trainer)
+
+wrapped_tokenizer = PreTrainedTokenizerFast(
+    tokenizer_object=tokenizer,
+    bos_token="<|endoftext|>",
+    eos_token="<|endoftext|>",
+)
 # Copyright (c) Sebastian Raschka under Apache License 2.0 (see LICENSE.txt).
 # Source for "Build a Large Language Model From Scratch"
 #   - https://www.manning.com/books/build-a-large-language-model-from-scratch
